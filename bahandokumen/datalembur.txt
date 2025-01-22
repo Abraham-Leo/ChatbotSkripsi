@@ -1,0 +1,29 @@
+Data Lembur Karyawan PT. XYZ Desember 2024 (Hari Libur):
+
+1. Arga = 12 jam
+2. Abraham Leo = 5 jam
+3. Zaenul = 10 jam
+4. Ade Permana = 4 jam
+5. Achmad Sidiq = 5 jam
+6. Hadi Wijaya = 5 jam
+7. Nur Ali Dzaky = 11 jam
+8. Jery = 12 jam
+9. Gunawan = 8 jam
+10. Dono = 0 jam
+11. Amir Yusuf Afandi = 9 jam
+12. Wahyu Dwi Cahyono = 12 jam
+13. Wahyu Mukti = 3 jam
+14. Fajar Susilo = 6 jam
+15. Afrizalliyansyah = 11 jam 
+16. Akbar = 6 jam
+17. Priyanto = 5 jam
+18. Rilo = 9 jam
+19. Fathan = 10 jam
+20. Bekti Wicaksono = 4 jam
+21. Dika = 2 jam
+22. Andre MymoLL = 12 jam
+23. Muhammad Jimmy Alfajri = 10 jam
+24. Aan = 7 jam
+25. Andri S = 9 jam
+26. Umam = 5 jam
+27. Tri Nurhidayat = 8 jam

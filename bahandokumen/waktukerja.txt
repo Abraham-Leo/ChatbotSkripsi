@@ -1,0 +1,19 @@
+Hari kerja adalah hari Senin sampai dengan hari Sabtu atau 6 hari dalam seminggu. Jumlah jam kerja dalam seminggu adalah 40 jam dengan ketentuan sebagai berikut:
+
+Jam Kerja Non Shift:
+  - Hari Senin sampai Kamis: 08:00 - 16:30 WIB dengan waktu istirahat pada pukul 12:00 - 13:05 WIB.
+  - Hari Jumat: 08:00 - 16:30 WIB dengan waktu istirahat pada pukul 12:00 - 13:30 WIB.
+  - Hari Sabtu: 08:00 - 11:30 WIB.
+
+Selama waktu istirahat, karyawan dilarang meninggalkan lokasi kerja
+
+Jam Kerja Shift Keamanan:
+- Shift I: 08:00 - 16:00 WIB.
+- Shift II: 16:00 - 24:00 WIB.
+- Shift III: 24:00 - 08:00 WIB.
+
+Bagi pekerja yang beragama Islam diberi kesempatan untuk melaksanakan sholat secara bergantian. Pada hari Jumat, diberikan waktu untuk melaksanakan sholat Jumat dengan ketentuan masuk kembali ke kantor pada pukul 13:30 WIB. 
+
+Istirahat mingguan bagi keamanan yang bekerja dengan shift sesuai dengan jam kerja beregu, dimana jatuh harinya tidak sama dengan bagian produksi dan bagian lainnya.
+
+Hari libur resmi ditentukan berdasarkan ketentuan pemerintah dan kalender kerja tahunan yang ditetapkan oleh perusahaan.

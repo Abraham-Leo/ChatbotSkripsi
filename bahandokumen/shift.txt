@@ -1,0 +1,10 @@
+Kerja shift diterapkan pada bagian-bagian tertentu perusahaan untuk memenuhi kebutuhan operasional.
+
+Jam Kerja Shift:
+  - Shift I: 07:00 - 15:00 WIB, termasuk 1 jam istirahat.
+  - Shift II: 15:00 - 23:00 WIB, termasuk 1 jam istirahat.
+  - Shift III: 23:00 - 07:00 WIB, termasuk 1 jam istirahat.
+
+Perusahaan menerapkan peraturan jam kerja secara bergilir (Shift) untuk memenuhi kebutuhan operasional perusahaan. Selama waktu istirahat, karyawan dilarang meninggalkan lokasi kerja. Pengaturan jam kerja shift tidak sama dengan jam kerja non shift dan hari libur karyawan tidak selalu jatuh pada hari Minggu.
+
+Bagi pekerja wanita, tidak diperbolehkan bekerja pada malam hari kecuali dalam keadaan mendesak, dan harus mendapatkan persetujuan dari pengusaha serta sesuai dengan ketentuan yang berlaku dalam peraturan perundang-undangan.

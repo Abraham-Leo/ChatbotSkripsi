@@ -1,0 +1,29 @@
+Pencapaian Target PT. XYZ Tahun 2024 (dalam pcs)
+
+1.Bulan Januari
+- Target 	: 2.057.982
+- Aktual 	: 2.131.884
+
+2.Bulan Februari
+- Target	: 2.567.238
+- Aktual 	: 2.301.745
+
+3.Bulan Maret
+- Target	: 2.498.221
+- Aktual 	: 2.500.946
+
+4.Bulan April
+- Target	: 2.599.805
+- Aktual 	: 2.721.510
+
+5.Bulan Mei
+- Target	: 2.712.254
+- Aktual 	: 2.755.140
+
+6.Bulan Juni
+- Target	: 2.756.349
+- Aktual 	: 2.574.540
+
+7.Bulan Juli
+- Target	: 2.544.002
+- Aktual 	: 2.601.374
