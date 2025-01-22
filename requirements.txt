@@ -1,0 +1,9 @@
+gradio
+huggingface_hub
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
+llama-cpp-python
+llama-index
+llama-index-llms-llama-cpp
+llama-index-embeddings-huggingface
+transformers
+numpy
