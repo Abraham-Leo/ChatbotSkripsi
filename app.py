@@ -118,7 +118,7 @@ def launch_gradio(chat_engine):
         chat_interface = gr.ChatInterface(
             lambda message, history: generate_response(message, history, chat_engine)
         )
-    demo.launch()
+    demo.launch(server_name="0.0.0.0", server_port=8080)
 
 # Fungsi Utama untuk Menjalankan Aplikasi
 def main():
