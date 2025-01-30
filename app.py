@@ -11,32 +11,6 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from huggingface_hub import hf_hub_download
 from llama_index.core.node_parser import SentenceSplitter
 
-# Fungsi untuk memasang ulang llama-cpp-python dengan dukungan CUDA
-def install_llama_with_cuda():
-    try:
-        # Baca file requirements.txt
-        with open("requirements.txt", "r") as f:
-            packages = f.read().splitlines()
-
-        # Install setiap paket dengan CMAKE_ARGS untuk dukungan CUDA
-        for package in packages:
-            subprocess.run(
-            env={"CMAKE_ARGS": "-DGGML_CUDA=on"},
-        check=True
-        )
-        # Periksa apakah CUDA Toolkit tersedia
-        if not shutil.which("nvcc"):
-            print("CUDA Toolkit tidak ditemukan. Pastikan sudah diinstal.")
-            return
-
-        print("Memasang ulang llama-cpp-python dengan dukungan CUDA...")
-        
-        print("llama-cpp-python berhasil diinstal ulang dengan dukungan CUDA.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error saat menginstal ulang llama-cpp-python: {e}")
-    except Exception as e:
-        print(f"Kesalahan umum: {e}")
-
 # Fungsi untuk mengunduh model Llama
 def initialize_llama_model():
     # Unduh model jika belum ada di direktori kerja
@@ -49,11 +23,9 @@ def initialize_llama_model():
 
 # Fungsi untuk mengatur konfigurasi Settings
 def initialize_settings(model_path):  
-    Settings.llm = Llama(
+    Settings.llm = LlamaCPP(
         model_path=model_path,
-        n_gpu_layers=1,  # Sesuaikan dengan kebutuhan perangkat Anda
-        temperature=0.7,  # Sesuaikan untuk respons yang lebih cepat
-        top_p=0.9       # Mengurangi eksplorasi token
+        temperature=0.7,
     )
 
 # Fungsi untuk Menginisialisasi Index
@@ -100,6 +72,7 @@ def initialize_index():
                                                    "bahandokumen/upah.txt",
                                                    "bahandokumen/upahlembur.txt",
                                                    "bahandokumen/waktukerja.txt"]).load_data()
+
     parser = SentenceSplitter(chunk_size=150, chunk_overlap=10)
     nodes = parser.get_nodes_from_documents(documents)
     embedding = HuggingFaceEmbedding("BAAI/bge-base-en-v1.5")
@@ -149,7 +122,6 @@ def launch_gradio(chat_engine):
 
 # Fungsi Utama untuk Menjalankan Aplikasi
 def main():
-    install_llama_with_cuda()
     # Unduh model dan inisialisasi pengaturan
     model_path = initialize_llama_model()
     initialize_settings(model_path)  # Mengirimkan model_path ke fungsi initialize_settings
