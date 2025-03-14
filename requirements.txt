@@ -1,8 +1,10 @@
 gradio
 huggingface_hub
-llama-cpp-python
-llama-index
+llama-cpp-python==0.2.36
 llama-index-llms-llama-cpp
 llama-index-embeddings-huggingface
 transformers
 numpy
+gspread 
+oauth2client
+pandas
