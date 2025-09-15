@@ -1,144 +1,230 @@
 import gradio as gr
 import gspread
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from oauth2client.service_account import ServiceAccountCredentials
-from llama_cpp import Llama
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.llama_cpp import LlamaCPP
-from huggingface_hub import hf_hub_download
-from llama_index.core.llms import ChatMessage
-from llama_index.core.chat_engine.condense_plus_context import CondensePlusContextChatEngine
 from llama_index.core.schema import Document
 
-# ===================================
-# 1️⃣ Fungsi Membaca Data Google Spreadsheet
-# ===================================
-def read_google_sheets():
+# =============== 1. Cache dan Inisialisasi Index Google Sheets ===============
+cached_index = None
+cached_data = {}
+
+def read_google_sheets_separated():
     try:
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
         client = gspread.authorize(creds)
-        
-        SPREADSHEET_ID = "1e_cNMhwF-QYpyYUpqQh-XCw-OdhWS6EuYsoBUsVtdNg"
-        sheet_names = ["datatarget", "datacuti", "dataabsen", "datalembur"]
 
-        all_data = []
+        SPREADSHEET_ID = "1ZLmz1onvPEX4TbgPJbR4LxVZjIluf6BpISTiGS5_5Rg"
+        sheet_names = ["datatarget", "datacuti", "dataabsen", "datalembur", "pkb"]
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
-        
+
+        data_map = {}
+
         for sheet_name in sheet_names:
             try:
                 sheet = spreadsheet.worksheet(sheet_name)
                 data = sheet.get_all_values()
-                all_data.append(f"=== Data dari {sheet_name.upper()} ===")
-                all_data.extend([" | ".join(row) for row in data])
-                all_data.append("\n")
+                headers = data[0]
+                rows = data[1:]
+                entries = []
+
+                if sheet_name == "datatarget":
+                    for row in rows:
+                        if len(row) >= 4:
+                            try:
+                                jumlah = int(row[3])
+                                status = "KURANG" if jumlah < 0 else "LEBIH"
+                                entries.append(
+                                    f"[SELISIH] Mesin: {row[0]} | Kategori: {row[1]} | Bulan: {row[2]} | Selisih: {abs(jumlah)} pcs ({status})"
+                                )
+                            except ValueError:
+                                # Tangani jika data tidak valid
+                                entries.append(
+                                    f"[WARNING] Data tidak valid: {' | '.join(row)}"
+                                )
+
+                elif sheet_name == "datacuti":
+                    for row in rows:
+                        if len(row) >= 3:
+                            entries.append(f"{row[0]} memiliki sisa cuti {row[1]} hari pada tahun {row[2]}")
+
+                elif sheet_name == "dataabsen":
+                    for row in rows:
+                        if len(row) >= 3:
+                            entries.append(f"Kehadiran {row[0]} adalah {row[1]} hari pada bulan {row[2]}")
+
+                elif sheet_name == "datalembur":
+                    for row in rows:
+                        if len(row) >= 3:
+                            entries.append(f"{row[0]} telah lembur sebanyak {row[1]} jam pada bulan {row[2]}")
+
+                elif sheet_name == "pkb":
+                    for row in rows:
+                        if len(row) >= 4:
+                            bab, poin, kategori, isi = row[0], row[1], row[2], row[3]
+                            entries.append(f"Bab {bab}, Poin {poin} - Kategori: {kategori}\nIsi: {isi}")
+
+                data_map[sheet_name] = entries
             except gspread.exceptions.WorksheetNotFound:
-                all_data.append(f"❌ ERROR: Worksheet {sheet_name} tidak ditemukan.")
+                data_map[sheet_name] = [f"❌ ERROR: Worksheet {sheet_name} tidak ditemukan."]
 
-        return "\n".join(all_data).strip()
-    
-    except gspread.exceptions.SpreadsheetNotFound:
-        return "❌ ERROR: Spreadsheet tidak ditemukan!"
-    
+        return data_map
     except Exception as e:
-        return f"❌ ERROR: {str(e)}"
+        return {"error": str(e)}
 
-# ===================================
-# 2️⃣ Inisialisasi Model Llama
-# ===================================
-def initialize_llama_model():
-    model_path = hf_hub_download(
-        repo_id="TheBLoke/zephyr-7b-beta-GGUF",
-        filename="zephyr-7b-beta.Q4_K_M.gguf",
-        cache_dir="./models"
-    )
-    return model_path
+def detect_intent(message):
+    msg = message.lower()
 
-# ===================================
-# 3️⃣ Inisialisasi Pengaturan Model
-# ===================================
-def initialize_settings(model_path):
-    Settings.llm = LlamaCPP(model_path=model_path, temperature=0.7)
+    intent_keywords = {
+        "pkb": ["ketentuan", "aturan", "kompensasi", "hak", "berlaku", "diperbolehkan", "pkb", "perusahaan", "pekerja", 
+                "tenaga kerja asing", "jam kerja", "kerja lembur", "perjalanan dinas", "pengupahan", 
+                "pemutusan hubungan kerja", "jaminan sosial", "kesejahteraan", "fasilitas kerja", 
+                "alih tugas", "kewajiban", "disiplin kerja", "larangan", "sanksi", "mogok", 
+                "pesangon", "penghargaan masa kerja", "uang pisah"],
 
-# ===================================
-# 4️⃣ Inisialisasi Index & Chat Engine
-# ===================================
-def initialize_index():
-    text_data = read_google_sheets()
-    document = Document(text=text_data)
-    parser = SentenceSplitter(chunk_size=100, chunk_overlap=30)
-    nodes = parser.get_nodes_from_documents([document])
+        "cuti": ["cuti", "sisa cuti", "jumlah cuti", "berapa hari cuti", "libur"],
+
+        "target": ["target", "aktual", "selisih", "produksi", "mesin", "pcs"],
+
+        "lembur": ["lembur", "jam lembur", "berapa jam", "jam kerja tambahan"],
+
+        "absensi": ["absensi", "hadir", "tidak hadir", "izin", "masuk", "alpha", "berapa hari masuk", "kehadiran"]
+    }
+
+    scores = {}
+    for intent, keywords in intent_keywords.items():
+        scores[intent] = sum(1 for k in keywords if k in msg)
+
+    best_intent = max(scores, key=scores.get)
     
+    # Jika tidak ada keyword yang cocok, fallback ke "all"
+    return best_intent if scores[best_intent] > 0 else "all"
+
+def initialize_index():
+    global cached_index, cached_data
+    cached_data = read_google_sheets_separated()
+    all_text = sum(cached_data.values(), [])
+    document = Document(text="\n".join(all_text))
+    parser = SentenceSplitter(chunk_size=256, chunk_overlap=20)
+    nodes = parser.get_nodes_from_documents([document])
+
     embedding = HuggingFaceEmbedding("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     Settings.embed_model = embedding
-    
-    index = VectorStoreIndex(nodes)
-    return index
+    cached_index = VectorStoreIndex(nodes)
 
-def initialize_chat_engine(index):
-    retriever = index.as_retriever(similarity_top_k=3)
-    chat_engine = CondensePlusContextChatEngine.from_defaults(
-        retriever=retriever,
-        verbose=False  # ❌ Hapus verbose agar tidak ada referensi dokumen
+def search_google_sheets_vector(query):
+    if cached_data == {}:
+        initialize_index()
+
+    intent = detect_intent(query)
+
+    if intent == "pkb":
+        selected_data = cached_data.get("pkb", [])
+    elif intent == "cuti":
+        selected_data = cached_data.get("datacuti", [])
+    elif intent == "target":
+        selected_data = cached_data.get("datatarget", [])
+    elif intent == "absensi":
+        selected_data =cached_data.get("dataabsen", [])
+    elif intent == "lembur":
+        selected_data =cached_data.get("datalembur", [])
+    else:
+        selected_data = sum(cached_data.values(), [])
+
+    document = Document(text="\n".join(selected_data))
+    parser = SentenceSplitter(chunk_size=256, chunk_overlap=30)
+    nodes = parser.get_nodes_from_documents([document])
+
+    embedding = HuggingFaceEmbedding("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+    Settings.embed_model = embedding
+    temp_index = VectorStoreIndex(nodes)
+
+    retriever = temp_index.as_retriever(similarity_top_k=3)
+    retriever.similarity_cutoff = 1.0
+    retrieved_nodes = retriever.retrieve(query)
+
+    results = [node.text for node in retrieved_nodes]
+    return "\n".join(results) if results else "Maaf, saya tidak menemukan informasi yang relevan."
+
+# =============== 2. Load Model Transformers ===============
+def load_model():
+    model_id = "NousResearch/Llama-2-7b-chat-hf"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        device_map="auto",
+        torch_dtype=torch.float16
     )
-    return chat_engine
+    pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        max_new_tokens=512,
+        temperature=0.7,
+        repetition_penalty=1.2,
+        do_sample=True,
+    )
+    return pipe
 
-# ===================================
-# 5️⃣ Fungsi untuk Merapikan Jawaban Chatbot
-# ===================================
-def clean_response(response):
-    text = "".join(response.response_gen)  # Gabungkan teks yang dihasilkan
-    text = text.replace("\n\n", "\n").strip()  # Hilangkan newline berlebihan
-    text = text.replace("user:", "").replace("jawaban:", "").replace("assistant:", "").strip()
-    return text
+# =============== 3. Prompt Generator ===============
+def generate_prompt(user_message, context_data):
+    prompt = f"""
+### SISTEM:
+Anda adalah chatbot HRD yang membantu karyawan memahami administrasi perusahaan. 
+Jangan menjawab menggunakan Bahasa Inggris. 
+Gunakan Bahasa Indonesia dengan gaya profesional dan ramah. 
+Jika informasi tidak tersedia dalam dokumen, katakan dengan sopan bahwa Anda tidak tahu.
+Jawaban harus singkat, jelas, dan sesuai konteks. 
+Jangan memberikan jawaban untuk pertanyaan yang tidak diajukan oleh pengguna. 
+Jangan menyertakan rekomendasi pertanyaan lain.
+### DATA:
+{context_data}
+### PERTANYAAN:
+{user_message}
+### JAWABAN:
+"""
+    return prompt.strip()
 
-# ===================================
-# 6️⃣ Fungsi untuk Menghasilkan Respons Chatbot
-# ===================================
-def generate_response(message, history, chat_engine):
-    if history is None:
-        history = []
+# =============== 4. Generate Response ===============
+def should_use_history(message):
+    keywords = ["jika", "tadi", "sebelumnya","kalau begitu", "gimana kalau", "lanjutkan", "terus", "bagaimana dengan", "berarti", "jadi", "oke lalu"]
+    return any(kata in message.lower() for kata in keywords)
 
-    chat_messages = [
-        ChatMessage(
-            role="system",
-            content=(
-                "Anda adalah chatbot HRD yang membantu karyawan memahami administrasi perusahaan. "
-                "Jangan menjawab menggunakan Bahasa Inggris. "
-                "Gunakan Bahasa Indonesia dengan gaya profesional dan ramah. "
-                "Jika informasi tidak tersedia dalam dokumen, katakan dengan sopan bahwa Anda tidak tahu. "
-                "Jawaban harus singkat, jelas, dan sesuai konteks."
-                "Jangan memberikan jawaban untuk pertanyaan yang tidak diajukan oleh pengguna. "
-                "Jangan menyertakan rekomendasi pertanyaan lain."
-            ),
-        ),
-    ]
+def generate_response(message, history, pipe):
+    if should_use_history(message) and history:
+        previous_message = history[-1][0]
+        combined_message = previous_message + " " + message
+    else:
+        combined_message = message
 
-    response = chat_engine.stream_chat(message)
-    cleaned_text = clean_response(response)  # 🔹 Gunakan fungsi clean_response()
+    context = search_google_sheets_vector(combined_message)
 
-    history.append((message, cleaned_text))  # 🔹 Pastikan hanya teks yang masuk ke history
-    return cleaned_text
+    if "❌ ERROR" in context or context.strip() == "" or "tidak ditemukan" in context.lower():
+        return "Maaf, saya tidak menemukan informasi yang relevan untuk pertanyaan tersebut."
 
-# ===================================
-# 7️⃣ Fungsi Utama untuk Menjalankan Aplikasi
-# ===================================
+    full_prompt = generate_prompt(message, context)
+    response = pipe(full_prompt)[0]["generated_text"]
+
+    cleaned = response.split("### JAWABAN:")[-1].split("###")[0].strip()
+    return cleaned  # hanya return string!
+
+# =============== 5. Jalankan Gradio ===============
 def main():
-    model_path = initialize_llama_model()
-    initialize_settings(model_path)
+    pipe = load_model()
+    initialize_index()
 
-    index = initialize_index()
-    chat_engine = initialize_chat_engine(index)
+    def chatbot_fn(message, history):
+        return generate_response(message, history, pipe)
 
-    def chatbot_response(message, history=None):
-        return generate_response(message, history, chat_engine)
-
-    gr.Interface(
-        fn=chatbot_response,
-        inputs=["text"],
-        outputs=["text"],
-    ).launch()
+    gr.ChatInterface(
+        fn=chatbot_fn,
+        title="Chatbot HRD - Transformers",
+        theme="compact"
+    ).launch(share=True)
 
 if __name__ == "__main__":
     main()
