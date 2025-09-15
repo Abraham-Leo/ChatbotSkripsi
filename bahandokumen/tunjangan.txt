@@ -1,6 +1,0 @@
-Perusahaan memberikan tunjangan kepada pekerja berupa:
-- Tunjangan transportasi.
-- Tunjangan makan.
-- Tunjangan keluarga bagi pekerja yang telah menikah.
-- Tunjangan jabatan bagi pekerja dengan posisi tertentu.
-- Tunjangan hari raya yang diberikan satu kali dalam setahun sebelum hari raya Idul Fitri.

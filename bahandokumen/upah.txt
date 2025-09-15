@@ -1,5 +1,0 @@
-Upah adalah pendapatan pekerja berupa uang yang terdiri dari gaji pokok, tunjangan tetap, dan tunjangan tidak tetap yang berhak diterima.
-
-Pengusaha membayar upah pekerja pada akhir bulan, apabila tanggal tersebut jatuh pada hari libur, maka dibayarkan pada hari kerja sebelumnya.
-
-Periode perhitungan upah adalah dari tanggal 01 sampai dengan akhir bulan pada bulan berjalan sesuai kalender.
