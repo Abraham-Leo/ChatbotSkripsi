@@ -1,2 +1,2 @@
-# ChatbotSkripsi
-Project Skripsi 2024-2025
+# Adminzy
+HR Chatbot
