@@ -1,2 +1,2 @@
-# Adminzy
+# Adminzy Connect
 HR Chatbot
